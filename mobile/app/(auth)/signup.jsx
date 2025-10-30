@@ -24,11 +24,25 @@ export default function Signup() {
 
   const router = useRouter();
 
-  const handleSignUp = async () => {
-    const result = await register(username, email, password);
+const handleSignUp = async () => {
+  if (!username || !email || !password) {
+    Alert.alert("Error", "Please fill in all fields");
+    return;
+  }
 
-    if (!result.success) Alert.alert("Error", result.error);
-  };
+  const result = await register(username, email, password);
+  console.log("Register result:", result);
+
+  if (!result) {
+    Alert.alert("Error", "No response from server.");
+  } else if (!result.success) {
+    Alert.alert("Error", result.error || "Registration failed");
+  } else {
+    Alert.alert("Success", "Account created successfully!");
+    router.replace("/(auth)/login"); // Navigate to login page
+  }
+};
+
 
   return (
     <KeyboardAvoidingView
