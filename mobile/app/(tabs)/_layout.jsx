@@ -8,13 +8,13 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      screenOptions={{ 
+      screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: COLORS.primary,
-        headerTitleStyle: { 
+        headerTitleStyle: {
           color: COLORS.textPrimary,
           fontWeight: "600",
-        },  
+        },
         headerShadowVisible: false,
         tabBarStyle: {
           backgroundColor: COLORS.cardBackground,
@@ -26,30 +26,43 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen 
-        name="index" 
+      <Tabs.Screen
+        name="index"
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />   
+            <Ionicons name="home-outline" size={size} color={color} />
           ),
-        }} 
+        }}
       />
-      <Tabs.Screen 
+
+      <Tabs.Screen
         name="stats"
         options={{
-          title: 'Stats', 
+          title: 'Stats',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="stats-chart-outline" size={size} color={color} />   
+            <Ionicons name="stats-chart-outline" size={size} color={color} />
           ),
-        }} 
+        }}
       />
-      <Tabs.Screen 
-        name="profile" 
+
+      {/* ✅ NEW LOGS TAB */}
+      <Tabs.Screen
+        name="logs"
+        options={{
+          title: 'Logs',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="document-text-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="profile"
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />   
+            <Ionicons name="person-outline" size={size} color={color} />
           ),
         }}
       />
