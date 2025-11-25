@@ -4,7 +4,11 @@ import SafeScreen from "../components/SafeScreen";
 import { StatusBar } from "expo-status-bar";
 import { useAuthStore } from "../store/authStore";
 import { useEffect, useState } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, LogBox } from "react-native";
+
+LogBox.ignoreLogs([
+  "props.pointerEvents is deprecated. Use style.pointerEvents",
+]);
 
 export default function RootLayout() {
   const router = useRouter();

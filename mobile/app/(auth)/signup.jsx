@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  ScrollView
 } from "react-native";
 import styles from "../../assets/styles/signup.styles";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,34 +15,42 @@ import COLORS from "../../constants/colors";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "../../store/authStore";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 export default function Signup() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { user, isLoading, register, token } = useAuthStore();
 
   const router = useRouter();
 
-const handleSignUp = async () => {
-  if (!username || !email || !password) {
-    Alert.alert("Error", "Please fill in all fields");
-    return;
-  }
+  const handleSignUp = async () => {
+    if (!username || !email || !password || !confirmPassword) {
+      Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
 
-  const result = await register(username, email, password);
-  console.log("Register result:", result);
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
+      return;
+    }
 
-  if (!result) {
-    Alert.alert("Error", "No response from server.");
-  } else if (!result.success) {
-    Alert.alert("Error", result.error || "Registration failed");
-  } else {
-    Alert.alert("Success", "Account created successfully!");
-    router.replace("/(auth)/login"); // Navigate to login page
-  }
-};
+    const result = await register(username, email, password);
+    console.log("Register result:", result);
+
+    if (!result) {
+      Alert.alert("Error", "No response from server.");
+    } else if (!result.success) {
+      Alert.alert("Error", result.error || "Registration failed");
+    } else {
+      Alert.alert("Success", "Account created successfully!");
+      router.replace("/(auth)/login"); // Navigate to login page
+    }
+  };
 
 
   return (
@@ -49,12 +58,15 @@ const handleSignUp = async () => {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={styles.container}>
-        <View style={styles.card}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(1000).springify()}
+          style={styles.card}
+        >
           {/* HEADER */}
           <View style={styles.header}>
-            <Text style={styles.title}>PURR</Text>
-            <Text style={styles.subtitle}>Pet Urinal Recognition & Reporting</Text>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Join us and start your journey</Text>
           </View>
 
           <View style={styles.formContainer}>
@@ -132,6 +144,37 @@ const handleSignUp = async () => {
               </View>
             </View>
 
+            {/* CONFIRM PASSWORD INPUT */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirm Password</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={COLORS.primary}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="******"
+                  placeholderTextColor={COLORS.placeholderText}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
+                    size={20}
+                    color={COLORS.primary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* SIGNUP BUTTON */}
             <TouchableOpacity style={styles.button} onPress={handleSignUp} disabled={isLoading}>
               {isLoading ? (
@@ -149,8 +192,8 @@ const handleSignUp = async () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

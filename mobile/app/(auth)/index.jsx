@@ -14,7 +14,7 @@ import styles from "../../assets/styles/login.styles";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import COLORS from "../../constants/colors";
-
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { useAuthStore } from "../../store/authStore";
 
@@ -39,15 +39,26 @@ export default function Login() {
     >
       <View style={styles.container}>
         {/* ILLUSTRATION */}
-        <View style={styles.topIllustration}>
+        <Animated.View
+          entering={FadeInUp.delay(200).duration(1000).springify()}
+          style={styles.topIllustration}
+        >
           <Image
             source={require("../../assets/images/i.png")}
             style={styles.illustrationImage}
             resizeMode="contain"
           />
-        </View>
+        </Animated.View>
 
-        <View style={styles.card}>
+        <Animated.View
+          entering={FadeInDown.delay(400).duration(1000).springify()}
+          style={styles.card}
+        >
+          <View style={styles.header}>
+            <Text style={styles.title}>Welcome Back!</Text>
+            <Text style={styles.subtitle}>Please sign in to continue</Text>
+          </View>
+
           <View style={styles.formContainer}>
             {/* EMAIL */}
             <View style={styles.inputGroup}>
@@ -103,6 +114,10 @@ export default function Login() {
                   />
                 </TouchableOpacity>
               </View>
+
+              <TouchableOpacity style={styles.forgotPassword}>
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={isLoading}>
@@ -123,7 +138,7 @@ export default function Login() {
               </Link>
             </View>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </KeyboardAvoidingView>
   );

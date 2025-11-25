@@ -334,6 +334,32 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
+  petCard: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  petInfo: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  petName: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  petRfid: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
 });
 
 export default styles;
