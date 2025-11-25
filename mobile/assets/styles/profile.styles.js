@@ -22,10 +22,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
     elevation: 3,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -62,10 +59,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 24,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
     elevation: 2,
   },
   logoutText: {
@@ -97,10 +91,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: '0px 1px 4px rgba(0, 0, 0, 0.1)',
     elevation: 2,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -158,10 +149,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 20,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
     elevation: 2,
   },
   addButtonText: {
@@ -169,96 +157,85 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
-  
+
   // --- Refined Modern Reminder Styles ---
-reminderCard: {
-  backgroundColor: COLORS.cardBackground,
-  borderRadius: 20,
-  paddingVertical: 28,
-  paddingHorizontal: 24,
-  marginTop: 24,
-  marginBottom: 32,
-  borderWidth: 1,
-  borderColor: COLORS.border,
-  shadowColor: COLORS.black,
-  shadowOffset: { width: 0, height: 3 },
-  shadowOpacity: 0.08,
-  shadowRadius: 6,
-  elevation: 3,
-  alignItems: "center",
-},
+  reminderCard: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 20,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    marginTop: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    boxShadow: '0px 3px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 3,
+    alignItems: "center",
+  },
 
-reminderText: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: COLORS.textPrimary,
-  textAlign: "center",
-  marginBottom: 10,
-},
+  reminderText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+    textAlign: "center",
+    marginBottom: 10,
+  },
 
-reminderTimeButton: {
-  borderWidth: 1,
-  borderColor: COLORS.border,
-  backgroundColor: COLORS.background,
-  borderRadius: 12,
-  paddingVertical: 10,
-  paddingHorizontal: 20,
-  marginBottom: 24,
-  shadowColor: COLORS.black,
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.05,
-  shadowRadius: 2,
-  elevation: 2,
-},
-reminderTimeText: {
-  fontSize: 15,
-  fontWeight: "500",
-  color: COLORS.textPrimary,
-  textAlign: "center",
-},
+  reminderTimeButton: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginBottom: 24,
+    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)',
+    elevation: 2,
+  },
+  reminderTimeText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: COLORS.textPrimary,
+    textAlign: "center",
+  },
 
-reminderButtons: {
-  flexDirection: "row",
-  justifyContent: "center",
-  alignItems: "center",
-  gap: 16,
-},
+  reminderButtons: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 16,
+  },
 
-reminderButton: {
-  width: 130,
-  borderRadius: 14,
-  paddingVertical: 14,
-  alignItems: "center",
-  justifyContent: "center",
-  shadowColor: COLORS.black,
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.08,
-  shadowRadius: 4,
-  elevation: 2,
-},
+  reminderButton: {
+    width: 130,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+  },
 
-reminderButtonCleaned: {
-  backgroundColor: COLORS.primary,
-},
+  reminderButtonCleaned: {
+    backgroundColor: COLORS.primary,
+  },
 
-reminderButtonLater: {
-  backgroundColor: COLORS.background,
-  borderWidth: 1,
-  borderColor: COLORS.border,
-},
+  reminderButtonLater: {
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
 
-reminderButtonText: {
-  fontSize: 15,
-  fontWeight: "600",
-  color: COLORS.white,
-},
+  reminderButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.white,
+  },
 
-reminderButtonTextLater: {
-  color: COLORS.textPrimary,
-},
- 
+  reminderButtonTextLater: {
+    color: COLORS.textPrimary,
+  },
+
 });
-
-
 
 export default styles;

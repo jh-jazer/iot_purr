@@ -120,10 +120,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
     marginVertical: 8,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    boxShadow: '0px 3px 6px rgba(0, 0, 0, 0.1)',
     elevation: 4,
   },
   cardTitle: {
