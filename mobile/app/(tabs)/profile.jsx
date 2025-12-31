@@ -6,16 +6,19 @@ import {
   Alert,
   Platform,
   ActivityIndicator,
+  TextInput,
+  ScrollView,
+  Modal,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 
 import styles from "../../assets/styles/profile.styles";
 import COLORS from "../../constants/colors";
 import ProfileHeader from "../../components/ProfileHeader";
-import LogoutButton from "../../components/LogoutButton";
 
 export default function Profile() {
   const [reminderTime, setReminderTime] = useState(new Date());
@@ -23,7 +26,11 @@ export default function Profile() {
   const [cleanedToday, setCleanedToday] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const router = useRouter();
+  // Personal App State
+  const [ownerName, setOwnerName] = useState("Me");
+  const [ownerAvatar, setOwnerAvatar] = useState(null);
+  const [isEditingNameModal, setIsEditingNameModal] = useState(false);
+  const [tempName, setTempName] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -31,10 +38,14 @@ export default function Profile() {
         const savedTime = await AsyncStorage.getItem("reminderTime");
         const savedCleaned = await AsyncStorage.getItem("cleanedToday");
         const savedDate = await AsyncStorage.getItem("cleanedDate");
+        const savedOwner = await AsyncStorage.getItem("ownerName");
+        const savedAvatar = await AsyncStorage.getItem("ownerAvatar");
 
         const today = new Date().toDateString();
         setReminderTime(savedTime ? new Date(savedTime) : defaultReminderTime());
         setCleanedToday(savedCleaned === "true" && savedDate === today);
+        if (savedOwner) setOwnerName(savedOwner);
+        if (savedAvatar) setOwnerAvatar(savedAvatar);
       } catch (error) {
         console.error("Failed to load reminder data", error);
       } finally {
@@ -106,6 +117,51 @@ export default function Profile() {
     }
   };
 
+  const openNameEditor = () => {
+    setTempName(ownerName);
+    setIsEditingNameModal(true);
+  };
+
+  const saveOwnerName = async () => {
+    if (!tempName.trim()) {
+      Alert.alert("Error", "Name cannot be empty");
+      return;
+    }
+    try {
+      await AsyncStorage.setItem("ownerName", tempName);
+      setOwnerName(tempName);
+      setIsEditingNameModal(false);
+    } catch (e) {
+      Alert.alert("Error", "Failed to save name");
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert("Permission Required", "Sorry, we need camera roll permissions to make this work!");
+        return;
+      }
+
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        const uri = result.assets[0].uri;
+        setOwnerAvatar(uri);
+        await AsyncStorage.setItem("ownerAvatar", uri);
+      }
+    } catch (e) {
+      console.error("Pick image error", e);
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
   if (isLoading) {
     return (
       <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
@@ -115,12 +171,17 @@ export default function Profile() {
   }
 
   return (
-    <View style={styles.container}>
-      <ProfileHeader />
-      <LogoutButton />
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+      {/* HEADER */}
+      <ProfileHeader
+        name={ownerName}
+        avatar={ownerAvatar}
+        onEditName={openNameEditor}
+        onEditAvatar={pickImage}
+      />
 
       {/* 🧹 Reminder Card */}
-      <View style={[styles.card, { alignItems: "center", paddingVertical: 30 }]}>
+      <View style={[styles.card, { alignItems: "center", paddingVertical: 30, marginTop: 20 }]}>
         <Ionicons name="alert-circle-outline" size={40} color={COLORS.primary} />
         <Text style={[styles.title, { marginTop: 10 }]}>Daily Litter Box Reminder</Text>
 
@@ -205,6 +266,48 @@ export default function Profile() {
           onChange={handleChangeTime}
         />
       )}
-    </View>
+
+      {/* EDIT NAME MODAL */}
+      <Modal
+        visible={isEditingNameModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsEditingNameModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', width: '80%', padding: 20, borderRadius: 16 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>Edit Your Name</Text>
+
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: COLORS.border,
+                borderRadius: 8,
+                padding: 12,
+                fontSize: 16,
+                marginBottom: 20
+              }}
+              value={tempName}
+              onChangeText={setTempName}
+              placeholder="Enter your name"
+              autoFocus
+            />
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+              <TouchableOpacity onPress={() => setIsEditingNameModal(false)} style={{ padding: 10 }}>
+                <Text style={{ color: COLORS.textSecondary }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={saveOwnerName}
+                style={{ backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+    </ScrollView>
   );
 }

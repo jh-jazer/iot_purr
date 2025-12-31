@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,50 +9,49 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import COLORS from "../../constants/colors";
 import styles from "../../assets/styles/logs.styles";
+import { API_URL } from "../../constants/api";
 
 const Logs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch logs (replace URL with your backend endpoint)
+  // Fetch logs via API
   const fetchLogs = async () => {
     try {
-      // const response = await fetch("https://your-backend-url.onrender.com/api/logs");
-      // const data = await response.json();
+      const response = await fetch(`${API_URL}/cats/visits`);
+      const data = await response.json();
 
-      // Mock data based on user request
-      const demoData = [
-        {
-          _id: "1",
-          date: "2025-11-25",
-          entryTime: "08:30 AM",
-          exitTime: "08:35 AM",
-          catWeight: 4.8,
-          wasteWeight: 75,
-          visitNumber: 3,
-        },
-        {
-          _id: "2",
-          date: "2025-11-25",
-          entryTime: "01:15 PM",
-          exitTime: "01:20 PM",
-          catWeight: 4.85,
-          wasteWeight: 0, // Maybe just peed or didn't leave waste? Or just 0 change.
-          visitNumber: 2,
-        },
-        {
-          _id: "3",
-          date: "2025-11-25",
-          entryTime: "06:00 AM",
-          exitTime: "06:05 AM",
-          catWeight: 4.7,
-          wasteWeight: 60,
-          visitNumber: 1,
-        },
-      ];
+      if (Array.isArray(data)) {
+        // Transform backend data to frontend model (if needed)
+        // Backend: { _id, entryTime, weightIn, weightOut, wasteWeight, ... }
+        // Frontend Expected: { _id, date, entryTime: "HH:MM AM", exitTime, catWeight, ... }
 
-      setLogs(demoData);
+        const formattedLogs = data.map((visit, index) => {
+          const entryDate = new Date(visit.entryTime);
+
+          // Format Date: YYYY-MM-DD
+          const dateStr = entryDate.toISOString().split('T')[0];
+
+          // Format Time: 08:30 AM
+          const timeStr = entryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          // For now, exit time is same or undefined, let's just make it +5 mins for display if missing
+          // or just show "--"
+          const exitTimeStr = visit.lastVisit ? "--" : timeStr; // Simplified
+
+          return {
+            _id: visit._id,
+            date: dateStr,
+            entryTime: timeStr,
+            exitTime: "--", // We haven't implemented duration tracking yet
+            catWeight: visit.weightIn,
+            wasteWeight: visit.wasteWeight || 0,
+            visitNumber: data.length - index // Simple generic numbering (newest first)
+          };
+        });
+        setLogs(formattedLogs);
+      }
     } catch (error) {
       console.error("Failed to fetch logs:", error);
     } finally {
@@ -65,10 +64,10 @@ const Logs = () => {
     fetchLogs();
   }, []);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchLogs();
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -101,11 +100,7 @@ const Logs = () => {
           <Text style={styles.logLabel}>In:</Text>
           <Text style={styles.logValue}>{item.entryTime}</Text>
         </View>
-        <View style={styles.logItem}>
-          <Ionicons name="exit-outline" size={18} color={COLORS.textSecondary} style={{ marginRight: 6 }} />
-          <Text style={styles.logLabel}>Out:</Text>
-          <Text style={styles.logValue}>{item.exitTime}</Text>
-        </View>
+        {/* Removed Exit Time for now as it's not tracked */}
       </View>
 
       {/* Weight Details */}

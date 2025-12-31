@@ -8,20 +8,22 @@ import {
   SafeAreaView,
   StatusBar,
   ActivityIndicator,
-  Alert
+  Alert,
+  ScrollView,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import COLORS from "../../constants/colors";
 import styles from "../../assets/styles/home.styles";
+import { API_URL } from "../../constants/api";
 
 const Home = () => {
-  const [showAddOptions, setShowAddOptions] = useState(false); // Kept for "Add Device" if needed
   const [showEditCatModal, setShowEditCatModal] = useState(false);
   const [cat, setCat] = useState(null);
   const [catName, setCatName] = useState("");
-  const [catWeight, setCatWeight] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadCat();
@@ -29,16 +31,48 @@ const Home = () => {
 
   const loadCat = async () => {
     try {
+      // 1. Try to fetch from API first (Single Source of Truth)
+      const response = await fetch(`${API_URL}/cats`);
+      const cats = await response.json();
+
+      if (cats && cats.length > 0) {
+        // Use the first cat found (since we are single-cat mode)
+        const serverCat = cats[0];
+        setCat({
+          id: serverCat._id,
+          name: serverCat.name,
+          weight: serverCat.currentWeight,
+        });
+        // Also update local storage for fallback
+        await AsyncStorage.setItem("myCat", JSON.stringify({
+          id: serverCat._id,
+          name: serverCat.name,
+          weight: serverCat.currentWeight
+        }));
+      } else {
+        // Fallback to local storage if API returns empty (first run?)
+        const savedCat = await AsyncStorage.getItem("myCat");
+        if (savedCat) {
+          setCat(JSON.parse(savedCat));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load cat", error);
+      // Fallback to local
       const savedCat = await AsyncStorage.getItem("myCat");
       if (savedCat) {
         setCat(JSON.parse(savedCat));
       }
-    } catch (error) {
-      console.error("Failed to load cat", error);
     } finally {
       setIsLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadCat();
+  }, []);
 
   const handleSaveCat = async () => {
     if (!catName.trim()) {
@@ -46,24 +80,47 @@ const Home = () => {
       return;
     }
 
-    if (!catWeight.trim() || isNaN(catWeight)) {
-      Alert.alert("Error", "Please enter a valid weight (kg).");
-      return;
-    }
-
-    const newCat = {
-      id: cat?.id || Date.now(),
+    // Prepare payload - Name only
+    const payload = {
       name: catName,
-      weight: catWeight,
+      owner: "Me" // Ensure owner stays valid
     };
 
     try {
-      await AsyncStorage.setItem("myCat", JSON.stringify(newCat));
-      setCat(newCat);
-      setShowEditCatModal(false);
-      setCatName("");
-      setCatWeight("");
-      Alert.alert("Success", "Cat profile updated!");
+      let response;
+      if (cat && cat.id) {
+        // Update existing
+        response = await fetch(`${API_URL}/cats/${cat.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        // Create new
+        response = await fetch(`${API_URL}/cats`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, breed: "Unknown", gender: "Unknown", currentWeight: 0 })
+        });
+      }
+
+      const updatedCat = await response.json();
+
+      if (response.ok) {
+        const newCatState = {
+          id: updatedCat._id,
+          name: updatedCat.name,
+          weight: updatedCat.currentWeight || cat.weight, // Keep existing weight if backend doesn't return calc immediately
+        };
+        setCat(newCatState);
+        await AsyncStorage.setItem("myCat", JSON.stringify(newCatState));
+        setShowEditCatModal(false);
+        setCatName("");
+        Alert.alert("Success", "Cat profile updated!");
+      } else {
+        Alert.alert("Error", updatedCat.message || "Failed to save");
+      }
+
     } catch (error) {
       Alert.alert("Error", "Failed to save cat profile.");
     }
@@ -72,10 +129,8 @@ const Home = () => {
   const openEditModal = () => {
     if (cat) {
       setCatName(cat.name);
-      setCatWeight(cat.weight ? cat.weight.toString() : "");
     } else {
       setCatName("");
-      setCatWeight("");
     }
     setShowEditCatModal(true);
   };
@@ -95,17 +150,14 @@ const Home = () => {
       {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Home</Text>
-        {/* Optional: Add Device Button */}
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setShowAddOptions(true)}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={28} color={COLORS.white} />
-        </TouchableOpacity>
       </View>
 
-      <View style={styles.listContainer}>
+      <ScrollView
+        contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
+        }
+      >
         {cat ? (
           <View style={styles.petCard}>
             <View style={{
@@ -124,7 +176,7 @@ const Home = () => {
             <View style={styles.petInfo}>
               <Text style={styles.petName}>{cat.name}</Text>
               <Text style={styles.petRfid}>
-                {cat.weight ? `Weight: ${cat.weight} kg` : "Weight not set"}
+                {cat.weight ? `Avg Weight: ${cat.weight} kg` : "No weight data yet"}
               </Text>
             </View>
 
@@ -146,36 +198,7 @@ const Home = () => {
             </TouchableOpacity>
           </View>
         )}
-      </View>
-
-      {/* ADD OPTIONS MODAL (For Devices) */}
-      <Modal
-        visible={showAddOptions}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowAddOptions(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowAddOptions(false)}
-        >
-          <View style={styles.bottomSheet}>
-            <Text style={styles.sheetTitle}>Add New</Text>
-
-            <TouchableOpacity
-              style={styles.sheetButton}
-              onPress={() => {
-                setShowAddOptions(false);
-                Alert.alert("Scanning", "Scanning for nearby devices...");
-              }}
-            >
-              <Ionicons name="hardware-chip-outline" size={20} color={COLORS.white} />
-              <Text style={styles.sheetButtonText}>Add Device</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      </ScrollView>
 
       {/* EDIT/ADD CAT MODAL */}
       <Modal
@@ -197,16 +220,6 @@ const Home = () => {
               placeholderTextColor={COLORS.textSecondary}
               value={catName}
               onChangeText={setCatName}
-            />
-
-            <Text style={{ marginBottom: 8, color: COLORS.textPrimary, fontWeight: "600" }}>Weight (kg)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. 4.5"
-              placeholderTextColor={COLORS.textSecondary}
-              value={catWeight}
-              onChangeText={setCatWeight}
-              keyboardType="numeric"
             />
 
             <View style={styles.modalActions}>
