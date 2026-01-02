@@ -19,6 +19,7 @@ import styles from "../../assets/styles/home.styles";
 import { API_URL } from "../../constants/api";
 
 const Home = () => {
+  console.log("Rendering Home Screen");
   const [showEditCatModal, setShowEditCatModal] = useState(false);
   const [cat, setCat] = useState(null);
   const [catName, setCatName] = useState("");

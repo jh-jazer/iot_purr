@@ -11,11 +11,9 @@ LogBox.ignoreLogs([
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <SafeScreen>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-        </Stack>
-      </SafeScreen>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+      </Stack>
       <StatusBar style="dark" />
     </SafeAreaProvider>
   );
