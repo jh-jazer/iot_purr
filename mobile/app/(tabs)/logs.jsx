@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
-  FlatList,
+  SectionList,
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
@@ -12,7 +12,7 @@ import styles from "../../assets/styles/logs.styles";
 import { API_URL } from "../../constants/api";
 
 const Logs = () => {
-  const [logs, setLogs] = useState([]);
+  const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -23,34 +23,38 @@ const Logs = () => {
       const data = await response.json();
 
       if (Array.isArray(data)) {
-        // Transform backend data to frontend model (if needed)
-        // Backend: { _id, entryTime, weightIn, weightOut, wasteWeight, ... }
-        // Frontend Expected: { _id, date, entryTime: "HH:MM AM", exitTime, catWeight, ... }
+        // Group visits by date
+        const groupedByDate = {};
 
-        const formattedLogs = data.map((visit, index) => {
+        data.forEach((visit, index) => {
           const entryDate = new Date(visit.entryTime);
-
-          // Format Date: YYYY-MM-DD
           const dateStr = entryDate.toISOString().split('T')[0];
-
-          // Format Time: 08:30 AM
           const timeStr = entryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-          // For now, exit time is same or undefined, let's just make it +5 mins for display if missing
-          // or just show "--"
-          const exitTimeStr = visit.lastVisit ? "--" : timeStr; // Simplified
-
-          return {
+          const formattedVisit = {
             _id: visit._id,
             date: dateStr,
             entryTime: timeStr,
-            exitTime: "--", // We haven't implemented duration tracking yet
             catWeight: visit.weightIn,
             wasteWeight: visit.wasteWeight || 0,
-            visitNumber: data.length - index // Simple generic numbering (newest first)
+            visitNumber: data.length - index
           };
+
+          if (!groupedByDate[dateStr]) {
+            groupedByDate[dateStr] = [];
+          }
+          groupedByDate[dateStr].push(formattedVisit);
         });
-        setLogs(formattedLogs);
+
+        // Convert to sections format for SectionList
+        const sectionsArray = Object.keys(groupedByDate)
+          .sort((a, b) => new Date(b) - new Date(a)) // Sort dates descending (newest first)
+          .map(date => ({
+            title: date,
+            data: groupedByDate[date]
+          }));
+
+        setSections(sectionsArray);
       }
     } catch (error) {
       console.error("Failed to fetch logs:", error);
@@ -78,29 +82,45 @@ const Logs = () => {
     );
   }
 
+  const renderSectionHeader = ({ section: { title } }) => {
+    const date = new Date(title);
+    const formattedDate = date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    return (
+      <View style={{
+        backgroundColor: COLORS.inputBackground,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        marginTop: 8,
+        marginBottom: 4,
+        borderRadius: 8,
+        borderLeftWidth: 4,
+        borderLeftColor: COLORS.primary,
+      }}>
+        <Text style={{
+          fontSize: 16,
+          fontWeight: '600',
+          color: COLORS.textPrimary,
+        }}>
+          {formattedDate}
+        </Text>
+      </View>
+    );
+  };
+
   const renderItem = ({ item }) => (
     <View style={styles.logCard}>
-      {/* Header: Date & Visit # */}
+      {/* Header: Time & Visit # */}
       <View style={styles.logHeader}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Ionicons name="calendar-outline" size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
-          <Text style={styles.catName}>{item.date}</Text>
+          <Ionicons name="time-outline" size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
+          <Text style={styles.catName}>{item.entryTime}</Text>
         </View>
-        <View style={{ backgroundColor: COLORS.inputBackground, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-          <Text style={[styles.logTime, { color: COLORS.primary, fontWeight: "600" }]}>
-            Visit #{item.visitNumber}
-          </Text>
-        </View>
-      </View>
-
-      {/* Time Details */}
-      <View style={[styles.logDetails, { marginBottom: 12 }]}>
-        <View style={styles.logItem}>
-          <Ionicons name="enter-outline" size={18} color={COLORS.textSecondary} style={{ marginRight: 6 }} />
-          <Text style={styles.logLabel}>In:</Text>
-          <Text style={styles.logValue}>{item.entryTime}</Text>
-        </View>
-        {/* Removed Exit Time for now as it's not tracked */}
       </View>
 
       {/* Weight Details */}
@@ -125,7 +145,7 @@ const Logs = () => {
     <View style={styles.container}>
       <Text style={styles.header}>Activity Logs</Text>
 
-      {logs.length === 0 ? (
+      {sections.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No activity logs yet.</Text>
           <Text style={styles.emptySubtext}>
@@ -133,10 +153,11 @@ const Logs = () => {
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={logs}
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => item._id}
           renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
           contentContainerStyle={styles.listContainer}
           refreshControl={
             <RefreshControl
@@ -145,6 +166,7 @@ const Logs = () => {
               colors={[COLORS.primary]}
             />
           }
+          stickySectionHeadersEnabled={false}
         />
       )}
     </View>

@@ -236,6 +236,34 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
 
+  // --- Generic Card Styles (Matching ProfileHeader) ---
+  card: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+    marginBottom: 8,
+  },
+  subtitleSmall: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
+  },
 });
 
 export default styles;

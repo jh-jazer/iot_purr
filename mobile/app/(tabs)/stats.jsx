@@ -36,7 +36,7 @@ const Stats = () => {
       processStats(rawLogs, selectedRange);
     } else {
       // Clear stats if no logs
-      setStats({ labels: [], visits: [], weight: [], waste: [], visitLength: [] });
+      setStats({ labels: [], visits: [], weight: [], waste: [] });
     }
   }, [selectedRange, rawLogs]);
 
@@ -80,7 +80,7 @@ const Stats = () => {
     let visitsData = [];
     let weightData = [];
     let wasteData = [];
-    let visitLengthData = [];
+
 
     const now = new Date();
 
@@ -124,10 +124,6 @@ const Stats = () => {
       visitsData = filteredLogs.map(() => 1);
       weightData = filteredLogs.map(log => log.weightIn);
       wasteData = filteredLogs.map(log => log.wasteWeight || 0);
-      visitLengthData = filteredLogs.map(log => getDuration(log.entryTime, log.exitTime || log.updatedAt)); // Use updatedAt as fallback exit if strictly needed?
-      // Actually, for single point logs (weight only), duration is effectively 0 or small. 
-      // Let's assume 2 mins for standard weight in/out if undefined.
-      visitLengthData = filteredLogs.map(log => 2);
 
     } else {
       // Week or Month
@@ -157,6 +153,15 @@ const Stats = () => {
         acc[dateKey].count += 1;
         acc[dateKey].totalWeight += log.weightIn;
         acc[dateKey].totalWaste += (log.wasteWeight || 0);
+
+        // Calculate duration for this log
+        let duration = 5;
+        if (log.exitTime) {
+          const start = new Date(log.entryTime);
+          const end = new Date(log.exitTime);
+          duration = Math.max(1, Math.round((end - start) / 60000));
+        }
+        acc[dateKey].totalDuration = (acc[dateKey].totalDuration || 0) + duration;
         return acc;
       }, {});
 
@@ -171,7 +176,6 @@ const Stats = () => {
       visitsData = sortedDates.map(d => grouped[d].count);
       weightData = sortedDates.map(d => parseFloat((grouped[d].totalWeight / grouped[d].count).toFixed(2)));
       wasteData = sortedDates.map(d => grouped[d].totalWaste);
-      visitLengthData = sortedDates.map(() => 5); // placeholder avg
     }
 
     setStats({
@@ -179,7 +183,6 @@ const Stats = () => {
       visits: visitsData,
       weight: weightData,
       waste: wasteData,
-      visitLength: visitLengthData,
     });
   };
 
@@ -256,29 +259,7 @@ const Stats = () => {
               </View>
             )}
 
-            {/* Visit Length */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Visit Length (mins)</Text>
-              <BarChart
-                data={{
-                  labels: stats.labels,
-                  datasets: [{ data: stats.visitLength }],
-                }}
-                width={screenWidth * 0.85}
-                height={220}
-                chartConfig={{
-                  ...styles.chartConfig,
-                  decimalPlaces: 0,
-                }}
-                style={styles.chart}
-                fromZero
-              />
-              <Text style={styles.avgText}>
-                {selectedRange === "Today"
-                  ? "Latest Duration: " + (stats.visitLength[stats.visitLength.length - 1] || 0) + " mins"
-                  : "Avg Duration: " + (stats.visitLength[stats.visitLength.length - 1] || 0) + " mins"}
-              </Text>
-            </View>
+
 
             {/* Pet Weight */}
             <View style={styles.card}>

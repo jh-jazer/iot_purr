@@ -24,6 +24,7 @@ export default function Profile() {
   const [reminderTime, setReminderTime] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
   const [cleanedToday, setCleanedToday] = useState(false);
+  const [monitoringMode, setMonitoringMode] = useState("standard");
   const [isLoading, setIsLoading] = useState(true);
 
   // Personal App State
@@ -37,15 +38,16 @@ export default function Profile() {
       try {
         const savedTime = await AsyncStorage.getItem("reminderTime");
         const savedCleaned = await AsyncStorage.getItem("cleanedToday");
-        const savedDate = await AsyncStorage.getItem("cleanedDate");
         const savedOwner = await AsyncStorage.getItem("ownerName");
         const savedAvatar = await AsyncStorage.getItem("ownerAvatar");
+        const savedMode = await AsyncStorage.getItem("monitoringMode");
 
         const today = new Date().toDateString();
         setReminderTime(savedTime ? new Date(savedTime) : defaultReminderTime());
         setCleanedToday(savedCleaned === "true" && savedDate === today);
         if (savedOwner) setOwnerName(savedOwner);
         if (savedAvatar) setOwnerAvatar(savedAvatar);
+        if (savedMode) setMonitoringMode(savedMode);
       } catch (error) {
         console.error("Failed to load reminder data", error);
       } finally {
@@ -162,6 +164,15 @@ export default function Profile() {
     }
   };
 
+  const handleModeSelect = async (mode) => {
+    try {
+      setMonitoringMode(mode);
+      await AsyncStorage.setItem("monitoringMode", mode);
+    } catch (e) {
+      console.error("Failed to save mode", e);
+    }
+  };
+
   if (isLoading) {
     return (
       <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
@@ -180,83 +191,7 @@ export default function Profile() {
         onEditAvatar={pickImage}
       />
 
-      {/* 🧹 Reminder Card */}
-      <View style={[styles.card, { alignItems: "center", paddingVertical: 30, marginTop: 20 }]}>
-        <Ionicons name="alert-circle-outline" size={40} color={COLORS.primary} />
-        <Text style={[styles.title, { marginTop: 10 }]}>Daily Litter Box Reminder</Text>
 
-        {cleanedToday ? (
-          <>
-            <Text style={[styles.subtitle, { textAlign: "center", marginTop: 8 }]}>
-              You’ve already cleaned the litter box today! 🎉
-            </Text>
-            <Text style={styles.subtitleSmall}>
-              Next reminder at{" "}
-              {reminderTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} tomorrow.
-            </Text>
-          </>
-        ) : (
-          <>
-            <Text style={[styles.subtitle, { textAlign: "center", marginTop: 10 }]}>
-              It’s time to clean your litter box! 🧼
-            </Text>
-            <Text style={[styles.subtitleSmall, { marginTop: 4 }]}>
-              Reminder set for{" "}
-              {reminderTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} today.
-            </Text>
-
-            {/* Centered Buttons */}
-            <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 25, gap: 15 }}>
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  {
-                    backgroundColor: COLORS.border,
-                    paddingHorizontal: 25,
-                    paddingVertical: 12,
-                    borderRadius: 12,
-                  },
-                ]}
-                onPress={handleLater}
-              >
-                <Text style={[styles.buttonText, { color: COLORS.textPrimary }]}>Later</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  {
-                    backgroundColor: COLORS.primary,
-                    paddingHorizontal: 25,
-                    paddingVertical: 12,
-                    borderRadius: 12,
-                  },
-                ]}
-                onPress={handleCleaned}
-              >
-                <Text style={[styles.buttonText, { color: COLORS.white }]}>Cleaned</Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
-
-        {/* Change Time Button */}
-        <TouchableOpacity
-          style={{
-            marginTop: 25,
-            alignItems: "center",
-            justifyContent: "center",
-            flexDirection: "row",
-            gap: 6,
-          }}
-          onPress={() => setShowPicker(true)}
-        >
-          <Ionicons name="time-outline" size={18} color={COLORS.primary} />
-          <Text style={[styles.link, { color: COLORS.primary, fontWeight: "600" }]}>
-            Change Reminder Time
-          </Text>
-        </TouchableOpacity>
-      </View>
 
       {showPicker && (
         <DateTimePicker
@@ -307,6 +242,95 @@ export default function Profile() {
           </View>
         </View>
       </Modal>
+
+      {/* HEALTH MONITORING SETTINGS */}
+      <View style={[styles.card, { marginTop: 20 }]}>
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
+          <Ionicons name="fitness-outline" size={24} color={COLORS.primary} />
+          <Text style={[styles.title, { marginLeft: 10, marginTop: 0 }]}>Health Monitoring</Text>
+        </View>
+
+        <Text style={[styles.subtitle, { marginBottom: 10 }]}>Monitoring Mode</Text>
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 20 }}>
+          {["strict", "standard", "kitten"].map((mode) => {
+            const isSelected = monitoringMode === mode;
+            return (
+              <TouchableOpacity
+                key={mode}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: isSelected ? COLORS.primary : COLORS.border,
+                  backgroundColor: isSelected ? COLORS.primary : "transparent",
+                }}
+                onPress={() => handleModeSelect(mode)}
+              >
+                <Text style={{
+                  color: isSelected ? COLORS.white : COLORS.textSecondary,
+                  textAlign: "center",
+                  fontWeight: "600",
+                  fontSize: 12
+                }}>
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <Text style={[styles.subtitleSmall, { color: COLORS.textSecondary, lineHeight: 18 }]}>
+          • <Text style={{ fontWeight: "600" }}>Strict:</Text> For senior cats or cats with health conditions{"\n"}
+          • <Text style={{ fontWeight: "600" }}>Standard:</Text> Default monitoring for adult cats{"\n"}
+          • <Text style={{ fontWeight: "600" }}>Kitten:</Text> Higher thresholds for young, active cats
+        </Text>
+
+        <View style={{ marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: COLORS.border }}>
+          <Text style={[styles.subtitle, { marginBottom: 8 }]}>Baseline Status</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+            <Text style={{ fontSize: 14, color: COLORS.textSecondary }}>
+              Baseline established • 7+ days of data
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* ACTIVE ALERTS PREVIEW */}
+      <View style={[styles.card, { marginTop: 20 }]}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 15 }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Ionicons name="notifications-outline" size={24} color={COLORS.primary} />
+            <Text style={[styles.title, { marginLeft: 10, marginTop: 0 }]}>Active Alerts</Text>
+          </View>
+          <View style={{ backgroundColor: COLORS.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+            <Text style={{ color: COLORS.white, fontSize: 12, fontWeight: "700" }}>0</Text>
+          </View>
+        </View>
+
+        <Text style={{ fontSize: 14, color: COLORS.textSecondary, textAlign: "center", paddingVertical: 20 }}>
+          No active alerts. Your cat's health metrics are normal! 
+        </Text>
+
+        <TouchableOpacity
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            paddingVertical: 12,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: COLORS.primary,
+            gap: 6,
+          }}
+          onPress={() => {/* TODO: Navigate to alerts view */ }}
+        >
+          <Ionicons name="refresh" size={18} color={COLORS.primary} />
+          <Text style={{ color: COLORS.primary, fontWeight: "600" }}>Check for Alerts</Text>
+        </TouchableOpacity>
+      </View>
 
     </ScrollView>
   );
