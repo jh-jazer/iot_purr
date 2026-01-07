@@ -36,7 +36,7 @@ const Stats = () => {
       processStats(rawLogs, selectedRange);
     } else {
       // Clear stats if no logs
-      setStats({ labels: [], visits: [], weight: [], waste: [] });
+      setStats({ labels: [], visits: [], weight: [] });
     }
   }, [selectedRange, rawLogs]);
 
@@ -96,13 +96,7 @@ const Stats = () => {
 
     const todayStr = toLocalDateString(now);
 
-    const getDuration = (entry, exit) => {
-      if (!exit) return 5; // Default 5 mins if no exit time
-      const start = new Date(entry);
-      const end = new Date(exit);
-      const diffMs = end - start;
-      return Math.max(1, Math.round(diffMs / 60000));
-    };
+
 
     if (range === "Today") {
       filteredLogs = logs.filter(log => toLocalDateString(log.entryTime) === todayStr);
@@ -123,7 +117,7 @@ const Stats = () => {
 
       visitsData = filteredLogs.map(() => 1);
       weightData = filteredLogs.map(log => log.weightIn);
-      wasteData = filteredLogs.map(log => log.wasteWeight || 0);
+
 
     } else {
       // Week or Month
@@ -155,13 +149,6 @@ const Stats = () => {
         acc[dateKey].totalWaste += (log.wasteWeight || 0);
 
         // Calculate duration for this log
-        let duration = 5;
-        if (log.exitTime) {
-          const start = new Date(log.entryTime);
-          const end = new Date(log.exitTime);
-          duration = Math.max(1, Math.round((end - start) / 60000));
-        }
-        acc[dateKey].totalDuration = (acc[dateKey].totalDuration || 0) + duration;
         return acc;
       }, {});
 
@@ -175,14 +162,12 @@ const Stats = () => {
 
       visitsData = sortedDates.map(d => grouped[d].count);
       weightData = sortedDates.map(d => parseFloat((grouped[d].totalWeight / grouped[d].count).toFixed(2)));
-      wasteData = sortedDates.map(d => grouped[d].totalWaste);
     }
 
     setStats({
       labels,
       visits: visitsData,
       weight: weightData,
-      waste: wasteData,
     });
   };
 
@@ -281,25 +266,6 @@ const Stats = () => {
               </Text>
             </View>
 
-            {/* Waste Output */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Waste Weight (grams)</Text>
-              <BarChart
-                data={{
-                  labels: stats.labels,
-                  datasets: [{ data: stats.waste }],
-                }}
-                width={screenWidth * 0.85}
-                height={220}
-                yAxisSuffix="g"
-                chartConfig={styles.chartConfig}
-                style={styles.chart}
-                fromZero
-              />
-              <Text style={styles.avgText}>
-                Total: {stats.waste[stats.waste.length - 1]} g
-              </Text>
-            </View>
           </View>
         ) : (
           <View style={styles.emptyContainer}>

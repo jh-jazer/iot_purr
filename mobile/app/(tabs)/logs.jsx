@@ -36,7 +36,6 @@ const Logs = () => {
             date: dateStr,
             entryTime: timeStr,
             catWeight: visit.weightIn,
-            wasteWeight: visit.wasteWeight || 0,
             visitNumber: data.length - index
           };
 
@@ -130,13 +129,7 @@ const Logs = () => {
           <Text style={styles.logLabel}>Weight:</Text>
           <Text style={styles.logValue}>{item.catWeight} kg</Text>
         </View>
-        <View style={styles.logItem}>
-          <Ionicons name="trash-bin-outline" size={18} color={COLORS.textSecondary} style={{ marginRight: 6 }} />
-          <Text style={styles.logLabel}>Waste:</Text>
-          <Text style={[styles.logValue, { color: item.wasteWeight > 0 ? COLORS.primary : COLORS.textSecondary }]}>
-            {item.wasteWeight > 0 ? `+${item.wasteWeight} g` : "--"}
-          </Text>
-        </View>
+
       </View>
     </View>
   );
