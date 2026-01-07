@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -14,11 +14,13 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 
 import styles from "../../assets/styles/profile.styles";
 import COLORS from "../../constants/colors";
 import ProfileHeader from "../../components/ProfileHeader";
+import { generateAllAlerts } from "../../services/alertService";
+import { API_URL } from "../../constants/api";
 
 export default function Profile() {
   const [reminderTime, setReminderTime] = useState(new Date());
@@ -32,30 +34,70 @@ export default function Profile() {
   const [ownerAvatar, setOwnerAvatar] = useState(null);
   const [isEditingNameModal, setIsEditingNameModal] = useState(false);
   const [tempName, setTempName] = useState("");
+  const [alerts, setAlerts] = useState([]);
+  const [catName, setCatName] = useState("My Cat");
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const savedTime = await AsyncStorage.getItem("reminderTime");
-        const savedCleaned = await AsyncStorage.getItem("cleanedToday");
-        const savedOwner = await AsyncStorage.getItem("ownerName");
-        const savedAvatar = await AsyncStorage.getItem("ownerAvatar");
-        const savedMode = await AsyncStorage.getItem("monitoringMode");
+  useFocusEffect(
+    useCallback(() => {
+      const loadData = async () => {
+        try {
+          const savedTime = await AsyncStorage.getItem("reminderTime");
+          const savedCleaned = await AsyncStorage.getItem("cleanedToday");
+          const savedOwner = await AsyncStorage.getItem("ownerName");
+          const savedAvatar = await AsyncStorage.getItem("ownerAvatar");
+          const savedMode = await AsyncStorage.getItem("monitoringMode");
+          const savedCat = await AsyncStorage.getItem("myCat");
 
-        const today = new Date().toDateString();
-        setReminderTime(savedTime ? new Date(savedTime) : defaultReminderTime());
-        setCleanedToday(savedCleaned === "true" && savedDate === today);
-        if (savedOwner) setOwnerName(savedOwner);
-        if (savedAvatar) setOwnerAvatar(savedAvatar);
-        if (savedMode) setMonitoringMode(savedMode);
-      } catch (error) {
-        console.error("Failed to load reminder data", error);
-      } finally {
-        setIsLoading(false);
+          const today = new Date().toDateString();
+          setReminderTime(savedTime ? new Date(savedTime) : defaultReminderTime());
+          // Fix: savedDate was not defined in original code, assuming logic checks last clean date
+          const savedCleanDate = await AsyncStorage.getItem("cleanedDate");
+          setCleanedToday(savedCleaned === "true" && savedCleanDate === today);
+
+          if (savedOwner) setOwnerName(savedOwner);
+          if (savedAvatar) setOwnerAvatar(savedAvatar);
+          if (savedMode) setMonitoringMode(savedMode);
+          if (savedCat) {
+            const parsedCat = JSON.parse(savedCat);
+            if (parsedCat.name) setCatName(parsedCat.name);
+          }
+
+          // Initial alert check
+          const nameToUse = savedCat ? JSON.parse(savedCat).name : "My Cat";
+          checkForAlerts(false, nameToUse);
+        } catch (error) {
+          console.error("Failed to load reminder data", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      loadData();
+    }, [])
+  );
+
+  const checkForAlerts = async (showPopup = true, specificCatName = null) => {
+    try {
+      const response = await fetch(`${API_URL}/cats/visits`);
+      if (!response.ok) return; // Silent fail if API issues
+
+      const visits = await response.json();
+      const nameForAlerts = specificCatName || catName;
+      const newAlerts = generateAllAlerts(visits, nameForAlerts, monitoringMode);
+      setAlerts(newAlerts);
+
+      if (showPopup) {
+        if (newAlerts.length > 0) {
+          Alert.alert("Analysis Complete", `Found ${newAlerts.length} potential health alert(s).`);
+        } else {
+          Alert.alert("Analysis Complete", "No health alerts detected. Good job!");
+        }
       }
-    };
-    loadData();
-  }, []);
+    } catch (e) {
+      console.log("Error checking alerts", e);
+      if (showPopup) Alert.alert("Error", "Could not check analysis");
+    }
+  };
 
   const defaultReminderTime = () => {
     const date = new Date();
@@ -305,14 +347,35 @@ export default function Profile() {
             <Ionicons name="notifications-outline" size={24} color={COLORS.primary} />
             <Text style={[styles.title, { marginLeft: 10, marginTop: 0 }]}>Active Alerts</Text>
           </View>
-          <View style={{ backgroundColor: COLORS.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
-            <Text style={{ color: COLORS.white, fontSize: 12, fontWeight: "700" }}>0</Text>
+          <View style={{ backgroundColor: alerts.length > 0 ? COLORS.error || "red" : COLORS.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+            <Text style={{ color: COLORS.white, fontSize: 12, fontWeight: "700" }}>{alerts.length}</Text>
           </View>
         </View>
 
-        <Text style={{ fontSize: 14, color: COLORS.textSecondary, textAlign: "center", paddingVertical: 20 }}>
-          No active alerts. Your cat's health metrics are normal! 
-        </Text>
+        {alerts.length === 0 ? (
+          <Text style={{ fontSize: 14, color: COLORS.textSecondary, textAlign: "center", paddingVertical: 20 }}>
+            No active alerts. Your cat's health metrics are normal!
+          </Text>
+        ) : (
+          <View style={{ marginBottom: 20, gap: 10 }}>
+            {alerts.map((alert) => (
+              <View key={alert.id} style={{
+                backgroundColor: '#FEF2F2',
+                padding: 12,
+                borderRadius: 8,
+                borderLeftWidth: 4,
+                borderLeftColor: alert.severity === 'critical' ? 'red' : 'orange'
+              }}>
+                <Text style={{ fontWeight: 'bold', color: '#B91C1C', marginBottom: 4 }}>
+                  {alert.type.replace('_', ' ').toUpperCase()}
+                </Text>
+                <Text style={{ fontSize: 13, color: '#450a0a', lineHeight: 18 }}>
+                  {alert.message}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         <TouchableOpacity
           style={{
@@ -325,7 +388,7 @@ export default function Profile() {
             borderColor: COLORS.primary,
             gap: 6,
           }}
-          onPress={() => {/* TODO: Navigate to alerts view */ }}
+          onPress={() => checkForAlerts(true)}
         >
           <Ionicons name="refresh" size={18} color={COLORS.primary} />
           <Text style={{ color: COLORS.primary, fontWeight: "600" }}>Check for Alerts</Text>

@@ -126,41 +126,56 @@ const Home = () => {
         };
 
         try {
-            let response;
-            if (cat && cat.id) {
-                // Update existing
-                response = await fetch(`${API_URL}/cats/${cat.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            } else {
-                // Create new
-                response = await fetch(`${API_URL}/cats`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...payload, breed: "Unknown", gender: "Unknown", currentWeight: 0 })
-                });
+            let visitedServer = false;
+            let updatedCat = null;
+
+            // Try to sync with server
+            try {
+                let response;
+                if (cat && cat.id) {
+                    // Update existing
+                    response = await fetch(`${API_URL}/cats/${cat.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    // Create new
+                    response = await fetch(`${API_URL}/cats`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...payload, breed: "Unknown", gender: "Unknown", currentWeight: 0 })
+                    });
+                }
+
+                if (response.ok) {
+                    updatedCat = await response.json();
+                    visitedServer = true;
+                }
+            } catch (networkErr) {
+                console.log("Network error saving cat, falling back to local", networkErr);
             }
 
-            const updatedCat = await response.json();
+            // Always update local state (Single Source of Truth Fallback)
+            const newCatState = {
+                id: (updatedCat && updatedCat._id) || (cat && cat.id) || null,
+                name: catName, // Always rely on user input if server fails
+                weight: (updatedCat && updatedCat.currentWeight) || (cat && cat.weight) || 0,
+            };
 
-            if (response.ok) {
-                const newCatState = {
-                    id: updatedCat._id,
-                    name: updatedCat.name,
-                    weight: updatedCat.currentWeight || cat.weight, // Keep existing weight if backend doesn't return calc immediately
-                };
-                setCat(newCatState);
-                await AsyncStorage.setItem("myCat", JSON.stringify(newCatState));
-                setShowEditCatModal(false);
-                setCatName("");
+            setCat(newCatState);
+            await AsyncStorage.setItem("myCat", JSON.stringify(newCatState));
+            setShowEditCatModal(false);
+            setCatName("");
+
+            if (visitedServer) {
                 Alert.alert("Success", "Cat profile updated!");
             } else {
-                Alert.alert("Error", updatedCat.message || "Failed to save");
+                Alert.alert("Saved", "Profile updated locally (Offline Mode)");
             }
 
         } catch (error) {
+            console.error("Critical save error", error);
             Alert.alert("Error", "Failed to save cat profile.");
         }
     };
