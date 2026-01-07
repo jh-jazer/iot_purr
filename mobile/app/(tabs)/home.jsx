@@ -34,35 +34,73 @@ const Home = () => {
         try {
             // 1. Try to fetch from API first (Single Source of Truth)
             const response = await fetch(`${API_URL}/cats`);
-            const cats = await response.json();
+            let cats = [];
+            if (response.ok) {
+                try {
+                    cats = await response.json();
+                } catch (e) {
+                    console.log("Error parsing cats JSON", e);
+                }
+            }
+
+            let currentCat = null;
 
             if (cats && cats.length > 0) {
-                // Use the first cat found (since we are single-cat mode)
+                // Use the first cat found
                 const serverCat = cats[0];
-                setCat({
+                currentCat = {
                     id: serverCat._id,
                     name: serverCat.name,
                     weight: serverCat.currentWeight,
-                });
-                // Also update local storage for fallback
-                await AsyncStorage.setItem("myCat", JSON.stringify({
-                    id: serverCat._id,
-                    name: serverCat.name,
-                    weight: serverCat.currentWeight
-                }));
+                };
             } else {
-                // Fallback to local storage if API returns empty (first run?)
+                // Fallback to local storage
                 const savedCat = await AsyncStorage.getItem("myCat");
                 if (savedCat) {
-                    setCat(JSON.parse(savedCat));
+                    currentCat = JSON.parse(savedCat);
+                } else {
+                    // Default
+                    currentCat = {
+                        name: "My Cat",
+                        weight: 0,
+                    };
                 }
             }
+
+            // 2. Fetch latest visit to get real-time weight
+            try {
+                const visitsRes = await fetch(`${API_URL}/cats/visits`);
+                let visits = [];
+                if (visitsRes.ok) {
+                    visits = await visitsRes.json();
+                }
+                if (visits && Array.isArray(visits) && visits.length > 0) {
+                    // entryTime -1 sort is default from backend
+                    currentCat.weight = visits[0].weightIn;
+                }
+            } catch (err) {
+                console.log("Could not fetch visits for weight update", err);
+            }
+
+            setCat(currentCat);
+            // Persist
+            await AsyncStorage.setItem("myCat", JSON.stringify(currentCat));
         } catch (error) {
             console.error("Failed to load cat", error);
             // Fallback to local
             const savedCat = await AsyncStorage.getItem("myCat");
             if (savedCat) {
                 setCat(JSON.parse(savedCat));
+            } else {
+                // Offline & First run fallback
+                const defaultCat = {
+                    name: "My Cat",
+                    weight: 0,
+                };
+                setCat(defaultCat);
+                // We typically don't persist here in catch block to avoid overwriting valid data if it was just a read error but...
+                // If local storage is empty, it's safe to set a default.
+                await AsyncStorage.setItem("myCat", JSON.stringify(defaultCat));
             }
         } finally {
             setIsLoading(false);
